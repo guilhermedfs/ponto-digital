@@ -18,6 +18,7 @@ class UserAdminResponse(BaseModel):
     patrimonio: str | None = None
     ativo: bool
     admin_aprovado: bool
+    status: str | None = None  # ATIVO | DESLIGADO (alunos); tela Pessoas usa para o selo
     criado_em: datetime
 
 
