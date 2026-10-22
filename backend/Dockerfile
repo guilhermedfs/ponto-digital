@@ -1,7 +1,10 @@
 FROM python:3.11-slim
 
-# Cria um usuário não-root por motivos de segurança (Boas Práticas de K8s)
-RUN groupadd -r appuser && useradd -r -g appuser appuser
+# Cria um usuário não-root por motivos de segurança (Boas Práticas de K8s).
+# -m -d cria o diretório home (senão $HOME aponta para /home/appuser inexistente e o
+# gunicorn/dependências falham com "[Errno 13] Permission denied: '/home/appuser'").
+RUN groupadd -r appuser && useradd -r -g appuser -m -d /home/appuser appuser
+ENV HOME=/home/appuser
 
 WORKDIR /app
 
@@ -30,4 +33,4 @@ USER appuser
 EXPOSE 8000
 
 # Executa migrações usando sh e inicia servidor com múltiplos workers (UvicornWorker via Gunicorn)
-CMD ["sh", "-c", "alembic upgrade head && gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker -b 0.0.0.0:8000"]
+CMD ["sh", "-c", "alembic upgrade head && gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker -b 0.0.0.0:8000 --worker-tmp-dir /dev/shm"]
