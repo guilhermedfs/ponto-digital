@@ -36,3 +36,8 @@ backend/run_lo.db
 # Demo/local artifacts (não versionar)
 backend/demo.db
 backend/.venv-demo/
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
