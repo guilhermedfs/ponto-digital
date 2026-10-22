@@ -12,7 +12,7 @@ const NIVEL_LABEL: Record<number, string> = {
 export function AvaliarPage() {
   const [turmas, setTurmas] = useState<string[]>([]);
   const [turma, setTurma] = useState<string>('');
-  const [alunosDaTurma, setAlunosDaTurma] = useState<{ id: string; nome: string }[]>([]);
+  const [alunosDaTurma, setAlunosDaTurma] = useState<{ id: string; nome: string; status?: string }[]>([]);
   const [los, setLos] = useState<LearningOutcome[]>([]);
   const [numSemanas, setNumSemanas] = useState(12);
   const [selected, setSelected] = useState<string>('');
@@ -42,13 +42,12 @@ export function AvaliarPage() {
     })();
   }, []);
 
-  // Load the roster of the selected turma (no turma → empty list).
+  // Load the roster of the selected turma. Clear first so a slow fetch never shows
+  // the previous turma's students (nor leaves `selected` pointing at one of them).
   useEffect(() => {
-    if (!turma) {
-      setAlunosDaTurma([]);
-      setSelected('');
-      return;
-    }
+    setAlunosDaTurma([]);
+    setSelected('');
+    if (!turma) return;
     let active = true;
     getAlunosDaTurma(turma)
       .then((roster) => {
@@ -61,6 +60,9 @@ export function AvaliarPage() {
   }, [turma]);
 
   useEffect(() => {
+    // Comentário é por aluno/semana e não é pré-carregado: limpe ao trocar, senão o
+    // texto digitado para um aluno "vaza" e seria salvo no próximo selecionado.
+    setComentario('');
     if (!selected) return;
     setLoading(true);
     setError(null);
@@ -110,7 +112,11 @@ export function AvaliarPage() {
             ) : alunosDaTurma.length === 0 ? (
               <option value="">Nenhum aluno nesta turma</option>
             ) : (
-              alunosDaTurma.map((a) => <option key={String(a.id)} value={String(a.id)}>{a.nome}</option>)
+              alunosDaTurma.map((a) => (
+                <option key={String(a.id)} value={String(a.id)}>
+                  {a.nome}{a.status === 'DESLIGADO' ? ' (Desligado)' : ''}
+                </option>
+              ))
             )}
           </Select>
           <Select label="Semana" value={semana} onChange={(e) => setSemana(Number(e.target.value))}>

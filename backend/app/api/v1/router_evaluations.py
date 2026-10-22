@@ -41,6 +41,7 @@ from app.application.lo_catalog_use_case import (
     LONotFoundError,
     LOValidationError,
 )
+from app.application.turma_scope import assert_turma_permitida
 from app.domain.enums import RoleAdmin, TipoUsuario
 from app.domain.models import LearningOutcome, WeeklyEvaluation
 
@@ -132,6 +133,35 @@ def _eval_out(
             for c in ev.comentarios
         ],
     )
+
+
+# ── Roster da turma (para a tela de avaliação) ───────────────────────────────
+@router.get("/avaliacoes/alunos", summary="Alunos de uma turma (para avaliar)")
+async def alunos_da_turma(
+    turma: str,
+    db: AsyncSession = Depends(get_db),
+    mentor: UserModel = Depends(require_mentor),
+) -> list[dict[str, Any]]:
+    """Roster de alunos da turma (ATIVOS e DESLIGADOS), escopado ao mentor.
+
+    Diferente de /frequencia (que lista só ATIVOS), aqui incluímos desligados para
+    permitir avaliar/corrigir semanas anteriores; o status acompanha cada aluno.
+    """
+    await assert_turma_permitida(db, mentor, turma)
+    rows = (
+        await db.execute(
+            select(UserModel)
+            .where(
+                UserModel.tipo == TipoUsuario.ALUNO,
+                UserModel.turma_ou_equipe == turma,
+            )
+            .order_by(UserModel.nome)
+        )
+    ).scalars().all()
+    return [
+        {"id": str(u.id), "nome": u.nome, "status": getattr(u.status, "value", u.status)}
+        for u in rows
+    ]
 
 
 # ── LO catalog ──────────────────────────────────────────────────────────────

@@ -191,12 +191,21 @@ export const getFrequencia = async (
 };
 
 /**
- * Roster de alunos de uma turma, reutilizando o endpoint de frequência (já escopado
- * por turma e pelo mentor). A data/turno não alteram a lista — são só para obter o roster.
+ * Roster de alunos de uma turma para a tela de avaliação (escopado por mentor).
+ * Usa o endpoint dedicado /admin/avaliacoes/alunos (inclui ATIVOS e DESLIGADOS).
+ * Fallback para /frequencia (só ATIVOS) em backends antigos sem esse endpoint.
  */
 export const getAlunosDaTurma = async (
   turma: string,
-): Promise<{ id: string; nome: string }[]> => {
+): Promise<{ id: string; nome: string; status?: string }[]> => {
+  const res = await fetch(`${API_URL}/admin/avaliacoes/alunos?turma=${encodeURIComponent(turma)}`, {
+    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+  });
+  if (res.ok) return res.json();
+  if (res.status !== 404) {
+    throw new Error(await parseError(res, 'Não foi possível carregar os alunos da turma'));
+  }
+  // Backend antigo: roster via frequência (data/turno arbitrários só para obter a lista).
   const roster = await getFrequencia(turma, '2000-01-01', 'manha');
   return roster.map((r) => ({ id: r.aluno_id, nome: r.aluno_nome }));
 };

@@ -9,7 +9,7 @@ from app.adapters.persistence.orm_models import Config as ConfigModel
 from app.adapters.persistence.orm_models import LearningOutcome as LOModel
 from app.adapters.persistence.orm_models import User as UserModel
 from app.adapters.persistence.orm_models import WeeklyEvaluation as EvalModel
-from app.domain.enums import RoleAdmin, TipoUsuario
+from app.domain.enums import RoleAdmin, StatusAluno, TipoUsuario
 from app.domain.models import CFG_DATA_INICIO, CFG_NUM_SEMANAS
 
 
@@ -33,9 +33,11 @@ async def seed_user(
     role: RoleAdmin,
     turma: str,
     nome: str = "User",
+    status: StatusAluno | None = None,
 ) -> uuid.UUID:
     uid = uuid.uuid4()
     now = datetime.now(UTC)
+    kwargs = {"status": status} if status is not None else {}
     async with async_session_maker() as s:
         s.add(
             UserModel(
@@ -51,6 +53,7 @@ async def seed_user(
                 admin_aprovado=True,
                 criado_em=now,
                 atualizado_em=now,
+                **kwargs,
             )
         )
         await s.commit()
